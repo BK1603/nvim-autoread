@@ -11,7 +11,7 @@ local WatcherList = {}
 
 function Watcher:new(fname)
   assert(fname ~= '', 'Watcher.new: Error: fname is an empty string')
-  local w = {fname = fname, handle = {}}
+  w = {fname = fname, handle = {}}
   setmetatable(w, self)
   self.__index = self
   WatcherList[fname] = w
@@ -27,8 +27,9 @@ function Watcher:start()
   -- get a new handle
   self.handle = uv.new_fs_event()
   -- get full path name here
-  local fullname = self.fname
-  self.handle:start(fullname, {}, self.on_change)
+  local fullname = vim.api.nvim_call_function('fnamemodify', {self.fname, ':p'})
+  self.handle:start(fullname, {}, on_change)
+  print(self.handle:getpath())
 end
 
 function Watcher:stop()
@@ -39,11 +40,8 @@ function Watcher:stop()
   self.handle:close()
 end
 
-function Watcher.on_change(err, fname, events)
-  if fname == nil then
-    print('fname is null')
-    return
-  end
+function on_change(err, fname, events)
+  print(err, fname, events)
 end
 
 function watch_file(fname)
