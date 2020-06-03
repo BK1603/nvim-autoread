@@ -48,12 +48,12 @@ function Watcher.on_change(err, fname, events)
   WatcherList[fname]:start()
 end
 
-function watch_file(fname)
+function Watcher.watch(fname)
   local w = Watcher:new(fname)
   w:start()
 end
 
-function stop_watch(fname)
+function Watcher.stop(fname)
   if WatcherList[fname] == nil then
     print('No watcher running on '..fname)
     return
@@ -62,5 +62,4 @@ function stop_watch(fname)
   WatcherList[fname] = nil
 end
 
-vim.api.nvim_command("command! -nargs=1 Watch call luaeval('watch_file(_A)', expand('<args>'))")
-vim.api.nvim_command("command! -nargs=1 Stop call luaeval('stop_watch(_A)', expand('<args>'))")
+return Watcher
