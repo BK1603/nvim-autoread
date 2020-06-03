@@ -10,8 +10,8 @@ command! -nargs=1 Stop call luaeval("require('autoread').stop_watch(_A)", expand
 
 augroup autoread
   autocmd!
-  au BufRead * Watch <afile>
-  au BufDelete,BufUnload * Stop <afile>
+  au BufRead,BufWritePost,FileWritePost,FileAppendPost * Watch <afile>
+  au BufDelete,BufUnload,BufWritePre,FileWritePre,FileAppendPre * Stop <afile>
 augroup END
 
 let &cpo = s:save_cpo " restore user coptions
