@@ -17,7 +17,7 @@ function Watcher:new(fname)
   assert(fname ~= '', 'Watcher.new: Error: fname is an empty string')
   -- get full path name for the file
   local ffname = vim.api.nvim_call_function('fnamemodify', {fname, ':p'})
-  w = {fname = fname, ffname = ffname, handle = {}}
+  w = {fname = fname, ffname = ffname, handle = nil}
   setmetatable(w, self)
   self.__index = self
   WatcherList[fname] = w
@@ -29,7 +29,7 @@ function Watcher:start()
   assert(self.ffname ~= '', 'Watcher.start: Error: full path for file not available')
   -- get a new handle
   self.handle = uv.new_fs_event()
-  self.handle:start(self.ffname, {}, self.on_change)
+  self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
 end
 
 function Watcher:stop()
@@ -41,7 +41,9 @@ function Watcher:stop()
 end
 
 function Watcher.on_change(err, fname, events)
-  print(WatcherList, WatcherList[fname])
+  if events.change then
+    print(fname..' changed')
+  end
   WatcherList[fname]:stop()
   WatcherList[fname]:start()
 end
