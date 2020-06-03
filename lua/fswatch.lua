@@ -6,42 +6,44 @@ local uv = vim.loop
   debounce the watcher.
 --]]
 
-local Watcher = {}
+local Watcher = {
+  fname = '',
+  ffname = '',
+  handle = nil
+}
 local WatcherList = {}
 
 function Watcher:new(fname)
   assert(fname ~= '', 'Watcher.new: Error: fname is an empty string')
-  w = {fname = fname, handle = {}}
+  -- get full path name for the file
+  local ffname = vim.api.nvim_call_function('fnamemodify', {fname, ':p'})
+  w = {fname = fname, ffname = ffname, handle = {}}
   setmetatable(w, self)
   self.__index = self
   WatcherList[fname] = w
-  for key, val in pairs(WatcherList) do
-    print(key, val)
-  end
   return w
 end
 
 function Watcher:start()
   assert(self.fname ~= '', 'Watcher.start: Error: no file to watch')
-  print(WatcherList[self.fname])
+  assert(self.ffname ~= '', 'Watcher.start: Error: full path for file not available')
   -- get a new handle
   self.handle = uv.new_fs_event()
-  -- get full path name here
-  local fullname = vim.api.nvim_call_function('fnamemodify', {self.fname, ':p'})
-  self.handle:start(fullname, {}, on_change)
-  print(self.handle:getpath())
+  self.handle:start(self.ffname, {}, self.on_change)
 end
 
 function Watcher:stop()
   assert(self.fname ~= '', 'Watcher.stop: Error: no file being watched')
-  assert(self.handle ~= {}, 'Watcher.stop: Error: no handle watching the file')
+  assert(self.handle ~= nil, 'Watcher.stop: Error: no handle watching the file')
   self.handle:stop()
   -- close the handle altogether, for windows.
   self.handle:close()
 end
 
-function on_change(err, fname, events)
-  print(err, fname, events)
+function Watcher.on_change(err, fname, events)
+  print(WatcherList, WatcherList[fname])
+  WatcherList[fname]:stop()
+  WatcherList[fname]:start()
 end
 
 function watch_file(fname)
@@ -50,6 +52,10 @@ function watch_file(fname)
 end
 
 function stop_watch(fname)
+  if WatcherList[fname] == nil then
+    print('No watcher running on '..fname)
+    return
+  end
   WatcherList[fname]:stop()
   WatcherList[fname] = nil
 end
