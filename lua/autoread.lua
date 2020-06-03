@@ -49,17 +49,21 @@ end
 
 function Watcher.watch(fname)
   local w = Watcher:new(fname)
-  WatcherList[fname] = w
+  -- since we can only get file name from callback, use only the file
+  -- name for storing in table. (Without the rest of the path.)
+  local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
+  WatcherList[f] = w
   w:start()
 end
 
 function Watcher.stop_watch(fname)
-  if WatcherList[fname] == nil then
+  local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
+  if WatcherList[f] == nil then
     print('No watcher running on '..fname)
     return
   end
-  WatcherList[fname]:stop()
-  WatcherList[fname] = nil
+  WatcherList[f]:stop()
+  WatcherList[f] = nil
 end
 
 return Watcher
