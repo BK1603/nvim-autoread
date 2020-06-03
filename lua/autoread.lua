@@ -42,26 +42,39 @@ end
 function Watcher.on_change(err, fname, events)
   if events.change then
     print(fname..' changed')
+    vim.api.nvim_command('checktime')
   end
   WatcherList[fname]:stop()
   WatcherList[fname]:start()
 end
 
 function Watcher.watch(fname)
-  local w = Watcher:new(fname)
   -- since we can only get file name from callback, use only the file
   -- name for storing in table. (Without the rest of the path.)
   local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
+
+  -- if a watcher already exists, do nothing.
+  if WatcherList[f] ~= nil then
+    return
+  end
+
+  -- create a new watcher and it to the watcher list.
+  local w = Watcher:new(fname)
   WatcherList[f] = w
   w:start()
 end
 
 function Watcher.stop_watch(fname)
+  -- get the name that must have been used as the key for the table.
   local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
+
+  -- if there is no watcher, print out an error and exit
   if WatcherList[f] == nil then
     print('No watcher running on '..fname)
     return
   end
+
+  -- stop and close the watcher handle, and set watcher to nil
   WatcherList[f]:stop()
   WatcherList[f] = nil
 end
