@@ -20,7 +20,6 @@ function Watcher:new(fname)
   w = {fname = fname, ffname = ffname, handle = nil}
   setmetatable(w, self)
   self.__index = self
-  WatcherList[fname] = w
   return w
 end
 
@@ -50,10 +49,11 @@ end
 
 function Watcher.watch(fname)
   local w = Watcher:new(fname)
+  WatcherList[fname] = w
   w:start()
 end
 
-function Watcher.stop(fname)
+function Watcher.stop_watch(fname)
   if WatcherList[fname] == nil then
     print('No watcher running on '..fname)
     return
