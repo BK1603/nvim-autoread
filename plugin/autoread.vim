@@ -8,6 +8,14 @@ set cpo&vim " reset them to vim defaults
 command! -nargs=1 Watch call luaeval("require('autoread').watch(_A)", expand('<args>')) 
 command! -nargs=1 Stop call luaeval("require('autoread').stop_watch(_A)", expand('<args>'))
 
+" function to prompt the user for a reload
+function! PromptReload()
+  let choice = confirm("File changed. Would you like to reload?", "&Yes\n&No", 1)
+  if choice == 1
+    checktime
+  endif
+endfunction
+
 augroup autoread
   autocmd!
   au BufRead,BufWritePost,FileWritePost,FileAppendPost * Watch <afile>

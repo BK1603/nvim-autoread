@@ -41,8 +41,7 @@ end
 
 function Watcher.on_change(err, fname, events)
   if events.change then
-    print(fname..' changed')
-    vim.api.nvim_command('checktime')
+    vim.api.nvim_command('call PromptReload()')
   end
   WatcherList[fname]:stop()
   WatcherList[fname]:start()
