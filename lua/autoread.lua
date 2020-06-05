@@ -49,9 +49,8 @@ function Watcher.on_change(err, fname, events)
        vim.api.nvim_command('call PromptReload()')
        WatcherList[fname].responded = true
     end
-  -- end
   -- sleep for a bit, to ignore multiple notifications from a single change
-  -- caused by various editors. (Like vim :P)
+  -- caused by various editors. (Like (neo)vim :P)
     local timer = uv.new_timer()
     timer:start(1, 0, function()
       timer:stop()
