@@ -18,8 +18,8 @@ endfunction
 
 augroup autoread
   autocmd!
-  au BufRead,BufWritePost,FileWritePost,FileAppendPost * Watch <afile>
-  au BufDelete,BufUnload,BufWritePre,FileWritePre,FileAppendPre * Stop <afile>
+  au BufRead,BufWritePost * Watch <afile>
+  au BufDelete,BufUnload,BufWritePre * Stop <afile>
 augroup END
 
 let &cpo = s:save_cpo " restore user coptions
