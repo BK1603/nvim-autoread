@@ -1,10 +1,15 @@
-local uv = vim.loop
 --[[
   Create a file watcher, each watcher is identified by the name of the file that it 
   watches. We can use a lua table to store all watchers indexed by their filenames 
   so that we can close the required watcher during the callback to on_change to 
   debounce the watcher.
 --]]
+
+local os = require('os')
+local uv = vim.loop
+
+-- Variable to restrict response to multiple notifications
+local responded = false
 
 local Watcher = {
   fname = '',
@@ -29,6 +34,7 @@ function Watcher:start()
   -- get a new handle
   self.handle = uv.new_fs_event()
   self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
+  responded = false
 end
 
 function Watcher:stop()
@@ -40,11 +46,22 @@ function Watcher:stop()
 end
 
 function Watcher.on_change(err, fname, events)
-  if events.change then
-    vim.api.nvim_command('call PromptReload()')
+  if responded ~= true then
+    if events.change then
+       vim.api.nvim_command('call PromptReload()')
+       responded = true
+    end
+  -- end
+  -- sleep for a bit, to ignore multiple notifications from a single change
+  -- caused by various editors. (Like vim :P)
+    local timer = uv.new_timer()
+    timer:start(1, 0, function()
+      timer:stop()
+      timer:close()
+      WatcherList[fname]:stop()
+      WatcherList[fname]:start()
+    end)
   end
-  WatcherList[fname]:stop()
-  WatcherList[fname]:start()
 end
 
 function Watcher.watch(fname)
