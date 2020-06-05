@@ -5,16 +5,14 @@
   debounce the watcher.
 --]]
 
-local os = require('os')
 local uv = vim.loop
-
--- Variable to restrict response to multiple notifications
-local responded = false
 
 local Watcher = {
   fname = '',
   ffname = '',
-  handle = nil
+  handle = nil,
+-- Variable to restrict response to multiple notifications
+  responded = false
 }
 local WatcherList = {}
 
@@ -34,7 +32,7 @@ function Watcher:start()
   -- get a new handle
   self.handle = uv.new_fs_event()
   self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
-  responded = false
+  self.responded = false
 end
 
 function Watcher:stop()
@@ -46,10 +44,10 @@ function Watcher:stop()
 end
 
 function Watcher.on_change(err, fname, events)
-  if responded ~= true then
+  if WatcherList[fname].responded ~= true then
     if events.change then
        vim.api.nvim_command('call PromptReload()')
-       responded = true
+       WatcherList[fname].responded = true
     end
   -- end
   -- sleep for a bit, to ignore multiple notifications from a single change
