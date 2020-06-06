@@ -78,6 +78,15 @@ function Watcher.watch(fname)
 end
 
 function Watcher.stop_watch(fname)
+  -- Do nothing if we opened a doc file. For some reason doc files never
+  -- trigger any event that could start a watcher, and trigger both BufDelete
+  -- and BufUnload. This causes us to close watchers that weren't even there
+  -- in the first place. We ignore help files here.
+  -- TODO: Is there way of getting buftype from the nvim api?
+  if starts_with(fname, '/usr/local/share/nvim/runtime/doc') then
+    return
+  end
+  -- if it is a help buffer, do nothing
   -- get the name that must have been used as the key for the table.
   local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
 
@@ -92,4 +101,9 @@ function Watcher.stop_watch(fname)
   WatcherList[f] = nil
 end
 
+function starts_with(str, start)
+  assert(type(str) == 'string' and type(start) == 'string',  
+         'starts_with:Err: string arguments expected')
+  return str:sub(1, #start) == start
+end
 return Watcher
