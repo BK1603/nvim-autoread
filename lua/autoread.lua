@@ -46,7 +46,8 @@ end
 function Watcher.on_change(err, fname, events)
   if WatcherList[fname].responded ~= true then
     if events.change then
-       vim.api.nvim_command('call PromptReload()')
+       --vim.api.nvim_command('call PromptReload()')
+       vim.api.nvim_command('checktime')
        WatcherList[fname].responded = true
     end
   -- sleep for a bit, to ignore multiple notifications from a single change
