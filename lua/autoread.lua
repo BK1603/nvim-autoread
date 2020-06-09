@@ -6,6 +6,8 @@
 --]]
 
 local uv = vim.loop
+local os = require('os')
+local i = 1
 
 local Watcher = {
   fname = '',
@@ -47,7 +49,11 @@ function Watcher.on_change(err, fname, events)
   if WatcherList[fname].responded ~= true then
     if events.change then
        --vim.api.nvim_command('call PromptReload()')
-       vim.api.nvim_command('checktime')
+       --vim.api.nvim_command('checktime')
+
+       print('changed '..i)
+       i = i + 1
+
        WatcherList[fname].responded = true
     end
   -- sleep for a bit, to ignore multiple notifications from a single change
