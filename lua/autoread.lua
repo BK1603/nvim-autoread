@@ -6,15 +6,13 @@
 --]]
 
 local uv = vim.loop
-local os = require('os')
 local i = 1
 
 local Watcher = {
   fname = '',
   ffname = '',
   handle = nil,
--- Variable to restrict response to multiple notifications
-  responded = false
+  listening = false
 }
 local WatcherList = {}
 
@@ -34,7 +32,7 @@ function Watcher:start()
   -- get a new handle
   self.handle = uv.new_fs_event()
   self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
-  self.responded = false
+  self.listening = true
 end
 
 function Watcher:stop()
@@ -46,23 +44,18 @@ function Watcher:stop()
 end
 
 function Watcher.on_change(err, fname, events)
-  if WatcherList[fname].responded ~= true then
-    if events.change then
-       --vim.api.nvim_command('call PromptReload()')
-       --vim.api.nvim_command('checktime')
+  if WatcherList[fname].listening then
+    --vim.api.nvim_command('checktime')
+    print('change '..i)
+    i = i + 1
+    WatcherList[fname].listening = false
 
-       print('changed '..i)
-       i = i + 1
+    WatcherList[fname]:stop()
 
-       WatcherList[fname].responded = true
-    end
-  -- sleep for a bit, to ignore multiple notifications from a single change
-  -- caused by various editors. (Like (neo)vim :P)
     local timer = uv.new_timer()
     timer:start(1, 0, function()
       timer:stop()
       timer:close()
-      WatcherList[fname]:stop()
       WatcherList[fname]:start()
     end)
   end

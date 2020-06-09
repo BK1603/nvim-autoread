@@ -1,8 +1,9 @@
-local uv = require('luv')
+local uv = vim.loop
 local i = 1
 local handle = uv.new_fs_event()
 
 function on_change(err, fname, status)
+  vim.nvim_command('checktime')
   print('changed '..i)
   i = i + 1
 
@@ -14,10 +15,8 @@ function on_change(err, fname, status)
     timer:stop()
     timer:close()
     handle = uv.new_fs_event()
-    handle:start('test', {}, on_change)
+    handle:start('test', {}, vim.schedule_wrap(on_change))
   end)
 end
 
-handle:start('test', {}, on_change)
-
-uv.run()
+handle:start('test', {}, vim.schedule_wrap(on_change))
