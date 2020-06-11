@@ -3,9 +3,13 @@ local i = 1
 local handle = uv.new_fs_event()
 
 function on_change(err, fname, status)
-  print('changed '..i)
-  i = i + 1
-
+  local stat = uv.fs_stat(fname)
+  if stat ~= fail then
+    print('changed '..i)
+    i = i + 1
+  else
+    print('renamed')
+  end
   handle:stop()
   handle:close()
 

@@ -12,14 +12,20 @@ command! -nargs=1 Stop call luaeval("require('autoread').stop_watch(_A)", expand
 function! PromptReload()
   let choice = confirm("File changed. Would you like to reload?", "&Yes\n&No", 1)
   if choice == 1
-    checktime
+    edit!
   endif
+endfunction
+
+function! PrintWatchers()
+  call luaeval("require('autoread').print_all()")
 endfunction
 
 augroup autoread
   autocmd!
   au BufRead,BufWritePost * Watch <afile>
   au BufDelete,BufUnload,BufWritePre * Stop <afile>
+  au FocusLost * call luaeval("require('autoread').pause_notif_all()")
+  au FocusGained * call luaeval("require('autoread').resume_notif_all()")
 augroup END
 
 let &cpo = s:save_cpo " restore user coptions

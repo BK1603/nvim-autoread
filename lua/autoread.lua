@@ -1,20 +1,41 @@
 --[[
-  Create a file watcher, each watcher is identified by the name of the file that it 
-  watches. We can use a lua table to store all watchers indexed by their filenames 
-  so that we can close the required watcher during the callback to on_change to 
+  Create a file watcher, each watcher is identified by the name of the file that it
+  watches. We can use a lua table to store all watchers indexed by their filenames
+  so that we can close the required watcher during the callback to on_change to
   debounce the watcher.
 --]]
 
 local uv = vim.loop
-local i = 1
 
 local Watcher = {
   fname = '',
   ffname = '',
   handle = nil,
-  listening = false
+  paused = false,
+  pending_notifs = false,
 }
 local WatcherList = {}
+
+-- idle handle to check for any pending notifications in a watcher.
+-- Only displays the notifications if neovim is in focus, and the buffer
+-- is the current buffer.
+
+-- Callback for the idle handle
+function check_notifications()
+  for f, watcher in pairs(WatcherList) do
+    if watcher.pending_notifs and watcher.paused == false then
+      if uv.fs_stat(watcher.ffname) ~= nil then
+        vim.api.nvim_command('call PromptReload()')
+      else
+        print("ERR: File "..watcher.fname.." removed")
+      end
+      watcher.pending_notifs = false
+    end
+  end
+end
+
+local check_handle = uv.new_check()
+check_handle:start(vim.schedule_wrap(check_notifications))
 
 function Watcher:new(fname)
   assert(fname ~= '', 'Watcher.new: Error: fname is an empty string')
@@ -32,7 +53,6 @@ function Watcher:start()
   -- get a new handle
   self.handle = uv.new_fs_event()
   self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
-  self.listening = true
 end
 
 function Watcher:stop()
@@ -40,25 +60,17 @@ function Watcher:stop()
   assert(self.handle ~= nil, 'Watcher.stop: Error: no handle watching the file')
   self.handle:stop()
   -- close the handle altogether, for windows.
+  if self.handle:is_closing() then
+    return
+  end
   self.handle:close()
 end
 
-function Watcher.on_change(err, fname, events)
-  if WatcherList[fname].listening then
-    --vim.api.nvim_command('checktime')
-    print('change '..i)
-    i = i + 1
-    WatcherList[fname].listening = false
+function Watcher.on_change(err, fname, event)
+  WatcherList[fname].pending_notifs = true
 
-    WatcherList[fname]:stop()
-
-    local timer = uv.new_timer()
-    timer:start(1, 0, function()
-      timer:stop()
-      timer:close()
-      WatcherList[fname]:start()
-    end)
-  end
+  WatcherList[fname]:stop()
+  WatcherList[fname]:start()
 end
 
 function Watcher.watch(fname)
@@ -66,9 +78,9 @@ function Watcher.watch(fname)
   -- name for storing in table. (Without the rest of the path.)
   local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
 
-  -- if a watcher already exists, do nothing.
+  -- if a watcher already exists, close it.
   if WatcherList[f] ~= nil then
-    return
+    WatcherList[f]:stop()
   end
 
   -- create a new watcher and it to the watcher list.
@@ -78,32 +90,43 @@ function Watcher.watch(fname)
 end
 
 function Watcher.stop_watch(fname)
-  -- Do nothing if we opened a doc file. For some reason doc files never
-  -- trigger any event that could start a watcher, and trigger both BufDelete
-  -- and BufUnload. This causes us to close watchers that weren't even there
-  -- in the first place. We ignore help files here.
-  -- TODO: Is there way of getting buftype from the nvim api?
-  if starts_with(fname, '/usr/local/share/nvim/runtime/doc') then
-    return
-  end
-  -- if it is a help buffer, do nothing
-  -- get the name that must have been used as the key for the table.
   local f = vim.api.nvim_call_function('fnamemodify', {fname, ':t'})
 
-  -- if there is no watcher, print out an error and exit
   if WatcherList[f] == nil then
-    print('No watcher running on '..fname)
+    print("No watcher for "..fname)
     return
   end
 
-  -- stop and close the watcher handle, and set watcher to nil
   WatcherList[f]:stop()
-  WatcherList[f] = nil
+end
+
+function Watcher:pause_notif()
+  self.paused = true
+end
+
+function Watcher:resume_notif()
+  self.paused = false
+end
+
+function Watcher.pause_notif_all()
+  check_handle:stop()
+end
+
+function Watcher.resume_notif_all()
+  check_handle:start(vim.schedule_wrap(check_notifications))
 end
 
 function starts_with(str, start)
-  assert(type(str) == 'string' and type(start) == 'string',  
+  assert(type(str) == 'string' and type(start) == 'string',
          'starts_with:Err: string arguments expected')
   return str:sub(1, #start) == start
 end
+
+function Watcher.print_all()
+  print('Printing all watchers:')
+  for i, watcher in pairs(WatcherList) do
+    print(i..' '..watcher.fname, watcher.pending_notifs)
+  end
+end
+
 return Watcher
