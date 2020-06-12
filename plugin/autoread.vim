@@ -47,12 +47,14 @@ augroup autoread
   au FocusGained * call luaeval("require('autoread').resume_notif_all()")
 augroup END
 
-let tmux_focus_events = s:get_tmux_option('focus-events')
-if tmux_focus_events !=# 'error'
-  if empty(tmux_focus_events) || tmux_focus_events !=# 'on'
-    call health#report_warn("`focus-events` is not enabled.")
-  else
-    call health#report_ok('focus-events: '.tmux_focus_events)
+if exists('$TMUX')
+  let tmux_focus_events = s:get_tmux_option('focus-events')
+  if tmux_focus_events !=# 'error'
+    if empty(tmux_focus_events) || tmux_focus_events !=# 'on'
+      call health#report_warn("`tmux focus-events` is not enabled.")
+    else
+      call health#report_ok('focus-events: '.tmux_focus_events)
+    endif
   endif
 endif
 
