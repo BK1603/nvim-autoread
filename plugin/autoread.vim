@@ -20,6 +20,25 @@ function! PrintWatchers()
   call luaeval("require('autoread').print_all()")
 endfunction
 
+function! s:get_tmux_option(option) abort
+  let cmd = 'tmux show-option -qvg '.a:option
+  let out = system(cmd)
+  let val = substitute(out, '\v(\s|\r|\n)', '', 'g')
+  if v:shell_error
+    call health#report_error('command failed: '.cmd."\n".out)
+    return 'error'
+  elseif empty(val)
+    let cmd = 'tmux show-option -qvgs '.a:option
+    let out = system(cmd)
+    let val = substitute(out, '\v(\s|\r|\n)', '', 'g')
+    if v:shell_error
+      call health#report_error('command failed: '.cmd.'\n'.out)
+      return 'error'
+    endif
+  endif
+  return val
+endfunction
+
 augroup autoread
   autocmd!
   au BufRead,BufWritePost * Watch <afile>
@@ -27,6 +46,15 @@ augroup autoread
   au FocusLost * call luaeval("require('autoread').pause_notif_all()")
   au FocusGained * call luaeval("require('autoread').resume_notif_all()")
 augroup END
+
+let tmux_focus_events = s:get_tmux_option('focus-events')
+if tmux_focus_events !=# 'error'
+  if empty(tmux_focus_events) || tmux_focus_events !=# 'on'
+    call health#report_warn("`focus-events` is not enabled.")
+  else
+    call health#report_ok('focus-events: '.tmux_focus_events)
+  endif
+endif
 
 let &cpo = s:save_cpo " restore user coptions
 unlet s:save_cpo
