@@ -52,7 +52,7 @@ function Watcher:start()
   assert(self.ffname ~= '', 'Watcher.start: Error: full path for file not available')
   -- get a new handle
   self.handle = uv.new_fs_event()
-  self.handle:start(self.ffname, {}, vim.schedule_wrap(self.on_change))
+  self.handle:start(self.ffname, {}, self.on_change)
 end
 
 function Watcher:stop()
